@@ -12,4 +12,240 @@
  * Creation date: 10/15/2026
  */
 
- 
+ /*
+ * Program: EECS 348 Assignment 4 - Sudoku Solver
+ * Description: Solves Sudoku puzzles with a recursive, object-oriented
+ *              backtracking search and prints every solution it finds.
+ *              Built from Gemini's generated solver, then improved for
+ *              correctness, speed, memory use and readability.
+ * Inputs: puzzle1.txt - puzzle5.txt (9 rows of 9 space-separated symbols,
+ *         digits 1-9 or "_" for a blank cell)
+ * Output: for each puzzle: the file name, the original puzzle, every
+ *         solution found, and "Solutions found: N" (or "No solution found")
+ * Collaborators: Gemini and ChatGPT (each generated a version of the solver;
+ *                Gemini's version is the base of this program); Claude
+ *                (Anthropic) for code review and guidance;
+ *                [classmates or "None"]
+ * Other sources: Gemini, ChatGPT, Claude, [any URLs or "None"]
+ * Author: Josselyn [LAST NAME]
+ * Creation date: [DATE YOU WRITE THIS]
+ */
+
+// ---------------------------------------------------------------------
+// Block: includes
+// Source: Gemini (unchanged)
+// ---------------------------------------------------------------------
+
+#include <iostream>   // cout and cerr, used to print puzzles and error messages
+#include <fstream>    // ifstream, used to read the puzzle files
+#include <vector>     // vector, still used in main to hold the list of file names
+#include <string>     // string, used for file names and the symbols read from files
+
+// ---------------------------------------------------------------------
+// Block: SudokuSolver class
+// Source: Gemini, with the edits marked inside each method
+// ---------------------------------------------------------------------
+class SudokuSolver {
+private:
+    int grid[9][9];       // the board; 0 means the cell is empty
+    int solutionCount;    // how many complete solutions have been found
+
+    // Source: Gemini (unchanged)
+    // Checks whether digit num can go at (row, col) without repeating in
+    // that row, that column, or that 3x3 block.
+    bool isValid(int row, int col, int num) const {
+        for (int c = 0; c < 9; ++c) {                       // look across the whole row
+            if (grid[row][c] == num) {                      // digit already in this row
+                return false;                               // so it cannot go here
+            }
+        }
+
+        for (int r = 0; r < 9; ++r) {                       // look down the whole column
+            if (grid[r][col] == num) {                      // digit already in this column
+                return false;                               // so it cannot go here
+            }
+        }
+
+        int startRow = (row / 3) * 3;                       // top row of this cell's block
+        int startCol = (col / 3) * 3;                       // left column of this cell's block
+        for (int r = 0; r < 3; ++r) {                       // go through the block's 3 rows
+            for (int c = 0; c < 3; ++c) {                   // and its 3 columns
+                if (grid[startRow + r][startCol + c] == num) { // digit already in this block
+                    return false;                           // so it cannot go here
+                }
+            }
+        }
+
+        return true;                                        // no conflict found, digit is legal
+    }
+
+    // Authored by Josselyn with help from Claude (edit 2: correctness)
+    // Checks that the clues given in the file do not already break a rule.
+    // Each clue is lifted off the board, tested with isValid, then put back.
+    bool cluesConsistent() {
+        for (int r = 0; r < 9; ++r) {                       // go through every row
+            for (int c = 0; c < 9; ++c) {                   // and every column
+                int digit = grid[r][c];                     // remember the clue in this cell
+                if (digit == 0) {                           // blank cell has nothing to check
+                    continue;                               // move on to the next cell
+                }
+                grid[r][c] = 0;                             // lift the clue so it does not match itself
+                bool ok = isValid(r, c, digit);             // would this clue be legal here?
+                grid[r][c] = digit;                         // put the clue back
+                if (!ok) {                                  // another clue already uses this digit
+                    return false;                           // the puzzle can have no solution
+                }
+            }
+        }
+        return true;                                        // every clue is consistent
+    }
+
+    // Source: Gemini (unchanged)
+    // Finds the first empty cell, scanning row by row; false if none is left.
+    bool findNextEmpty(int &row, int &col) const {
+        for (int r = 0; r < 9; ++r) {                       // go through the rows in order
+            for (int c = 0; c < 9; ++c) {                   // and the columns in order
+                if (grid[r][c] == 0) {                      // 0 marks an empty cell
+                    row = r;                                // hand the row back to the caller
+                    col = c;                                // hand the column back to the caller
+                    return true;                            // an empty cell was found
+                }
+            }
+        }
+        return false;                                       // board is completely filled
+    }
+
+    // Combination: Gemini recursion with backtracking, edited by Josselyn
+    // with help from Claude (edit 4: the per-call candidate vector is gone;
+    // edit 6: the redundant "no candidates" check is gone)
+    // Recursive depth-first search that prints every solution.
+    void solveRecursive() {
+        int row = -1;                                       // row of the empty cell we will fill
+        int col = -1;                                       // column of the empty cell we will fill
+
+        if (!findNextEmpty(row, col)) {                     // base case: no empty cells remain
+            solutionCount++;                                // one more complete solution
+            std::cout << "\nSolution " << solutionCount << ":\n"; // label this solution
+            printGrid();                                    // show the finished board
+            return;                                         // go back to look for other solutions
+        }
+
+        for (int val = 1; val <= 9; ++val) {                // try each digit directly, no vector needed
+            if (isValid(row, col, val)) {                   // only keep digits that break no rule
+                grid[row][col] = val;                       // choose this digit
+                solveRecursive();                           // fill the rest of the board
+                grid[row][col] = 0;                         // undo so the next digit can be tried
+            }
+        }
+        // If no digit fit, the loop does nothing and we simply return,
+        // which is the backtracking step (so no separate empty check is needed).
+    }
+
+public:
+    // Source: Gemini (unchanged)
+    // Starts with an empty board and zero solutions.
+    SudokuSolver() : solutionCount(0) {
+        for (int r = 0; r < 9; ++r) {                       // go through the rows
+            for (int c = 0; c < 9; ++c) {                   // and the columns
+                grid[r][c] = 0;                             // every cell starts empty
+            }
+        }
+    }
+
+    // Combination: Gemini file reading, symbol validation added by Josselyn
+    // with help from Claude (edit 1: correctness)
+    // Reads one puzzle file; returns false if it cannot be opened or is invalid.
+    bool loadFromFile(const std::string &filename) {
+        std::ifstream inFile(filename);                     // open the puzzle file
+        if (!inFile.is_open()) {                            // file missing or unreadable
+            return false;                                   // report failure to the caller
+        }
+
+        solutionCount = 0;                                  // reset the solution counter
+        for (int r = 0; r < 9; ++r) {                       // read 9 rows
+            for (int c = 0; c < 9; ++c) {                   // with 9 symbols each
+                std::string token;                          // holds one symbol from the file
+                if (!(inFile >> token)) {                   // file ended before 81 symbols
+                    inFile.close();                         // close the file before leaving
+                    return false;                           // the puzzle is incomplete
+                }
+                if (token == "_") {                         // underscore means a blank cell
+                    grid[r][c] = 0;                         // store it as 0
+                } else if (token.size() == 1 && token[0] >= '1' && token[0] <= '9') { // a legal digit
+                    grid[r][c] = token[0] - '0';            // convert the character to its number
+                } else {                                    // anything else is not valid Sudoku input
+                    inFile.close();                         // close the file before leaving
+                    return false;                           // reject the file
+                }
+            }
+        }
+        inFile.close();                                     // finished reading
+        return true;                                        // puzzle loaded successfully
+    }
+
+    // Source: Gemini (unchanged)
+    // Prints the board, showing blanks as "_" so it matches the input files.
+    void printGrid() const {
+        for (int r = 0; r < 9; ++r) {                       // one printed line per row
+            for (int c = 0; c < 9; ++c) {                   // one symbol per column
+                if (grid[r][c] == 0) {                      // empty cell
+                    std::cout << "_ ";                      // print an underscore
+                } else {                                    // filled cell
+                    std::cout << grid[r][c] << " ";         // print its digit
+                }
+            }
+            std::cout << "\n";                              // end the row
+        }
+    }
+
+    // Combination: Gemini solve(), clue check added by Josselyn with help
+    // from Claude (edit 2: correctness)
+    // Runs the search and reports how many solutions were found.
+    void solve() {
+        if (!cluesConsistent()) {                           // clues already contradict each other
+            std::cout << "No solution found\n";             // so searching would be pointless
+            return;                                         // skip the search
+        }
+        solveRecursive();                                   // find and print every solution
+        if (solutionCount == 0) {                           // the search found nothing
+            std::cout << "No solution found\n";
+        } else {                                            // at least one solution exists
+            std::cout << "Solutions found: " << solutionCount << "\n";
+        }
+    }
+};
+
+// ---------------------------------------------------------------------
+// Block: main
+// Source: Gemini (unchanged)
+// ---------------------------------------------------------------------
+int main() {
+    const std::vector<std::string> puzzleFiles = {          // the five required input files
+        "puzzle1.txt",
+        "puzzle2.txt",
+        "puzzle3.txt",
+        "puzzle4.txt",
+        "puzzle5.txt"
+    };
+
+    for (const auto &filename : puzzleFiles) {              // handle each puzzle in order
+        std::cout << "========================================\n";
+        std::cout << filename << "\n";                      // print the puzzle's file name
+        std::cout << "========================================\n";
+
+        SudokuSolver solver;                                // fresh solver for each puzzle
+        if (!solver.loadFromFile(filename)) {               // stop on unreadable or invalid files
+            std::cerr << "Error: Could not open or read " << filename << "\n\n";
+            continue;                                       // go on to the next puzzle
+        }
+
+        std::cout << "Original Puzzle:\n";
+        solver.printGrid();                                 // show the puzzle as read from the file
+
+        std::cout << "\nSolving...\n";
+        solver.solve();                                     // search and print all solutions
+        std::cout << "\n";                                  // blank line between puzzles
+    }
+
+    return 0;                                               // finished normally
+}
