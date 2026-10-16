@@ -12,30 +12,6 @@
  * Creation date: 10/15/2026
  */
 
- /*
- * Program: EECS 348 Assignment 4 - Sudoku Solver
- * Description: Solves Sudoku puzzles with a recursive, object-oriented
- *              backtracking search and prints every solution it finds.
- *              Built from Gemini's generated solver, then improved for
- *              correctness, speed, memory use and readability.
- * Inputs: puzzle1.txt - puzzle5.txt (9 rows of 9 space-separated symbols,
- *         digits 1-9 or "_" for a blank cell)
- * Output: for each puzzle: the file name, the original puzzle, every
- *         solution found, and "Solutions found: N" (or "No solution found")
- * Collaborators: Gemini and ChatGPT (each generated a version of the solver;
- *                Gemini's version is the base of this program); Claude
- *                (Anthropic) for code review and guidance;
- *                [classmates or "None"]
- * Other sources: Gemini, ChatGPT, Claude, [any URLs or "None"]
- * Author: Josselyn [LAST NAME]
- * Creation date: [DATE YOU WRITE THIS]
- */
-
-// ---------------------------------------------------------------------
-// Block: includes
-// Source: Gemini (unchanged)
-// ---------------------------------------------------------------------
-
 #include <iostream>   // cout and cerr, used to print puzzles and error messages
 #include <fstream>    // ifstream, used to read the puzzle files
 #include <vector>     // vector, still used in main to hold the list of file names
